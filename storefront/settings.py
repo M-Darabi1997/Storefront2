@@ -42,6 +42,7 @@ INSTALLED_APPS = [
     'debug_toolbar',
     'store',
     'store_custom',
+    'django_filters',
     
     'tags',
     'likes'

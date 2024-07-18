@@ -10,6 +10,7 @@ mysqlclient = "*"
 psycopg2 = "*"
 djangorestframework = "*"
 drf-nested-routers = "*"
+django-filter = "*"
 
 [dev-packages]
 
