@@ -9,6 +9,7 @@ django-debug-toolbar = "*"
 mysqlclient = "*"
 psycopg2 = "*"
 djangorestframework = "*"
+drf-nested-routers = "*"
 
 [dev-packages]
 
