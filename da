@@ -1,0 +1,93 @@
+[1mdiff --git a/store/models.py b/store/models.py[m
+[1mindex 7168a87..668f3e8 100644[m
+[1m--- a/store/models.py[m
+[1m+++ b/store/models.py[m
+[36m@@ -103,7 +103,7 @@[m [mclass Cart(models.Model):[m
+ class CartItem(models.Model):[m
+     cart = models.ForeignKey(Cart, on_delete=models.CASCADE, related_name='items')[m
+     product = models.ForeignKey(Product, on_delete=models.CASCADE)[m
+[31m-    quantity = models.PositiveSmallIntegerField()[m
+[32m+[m[32m    quantity = models.PositiveSmallIntegerField(validators=[MinValueValidator(1)])[m
+ [m
+     class Meta:[m
+         unique_together = [['cart','product']][m
+[1mdiff --git a/store/serializers.py b/store/serializers.py[m
+[1mindex dcdf9de..b4636a0 100644[m
+[1m--- a/store/serializers.py[m
+[1m+++ b/store/serializers.py[m
+[36m@@ -41,7 +41,7 @@[m [mclass CartItemSerializer(serializers.ModelSerializer):[m
+     class Meta:[m
+         model = CartItem[m
+         fields = ['id', 'product','quantity','total_price'][m
+[31m-        [m
+[32m+[m
+ class CartSerializer(serializers.ModelSerializer):[m
+     [m
+     id = serializers.UUIDField(read_only=True)[m
+[36m@@ -56,3 +56,34 @@[m [mclass CartSerializer(serializers.ModelSerializer):[m
+          fields = ['id', 'items', 'total_price'][m
+ [m
+ [m
+[32m+[m[32mclass AddCartItemSerializer(serializers.ModelSerializer):[m
+[32m+[m[32m    product_id = serializers.IntegerField()[m
+[32m+[m
+[32m+[m[32m    def validate_product_id(self, value):[m
+[32m+[m[32m        if not Product.objects.filter(pk=value).exists():[m
+[32m+[m[32m            raise serializers.ValidationError("No product with the given ID was found")[m
+[32m+[m[32m        return value[m
+[32m+[m
+[32m+[m[32m    def save(self, **kwargs):[m
+[32m+[m[32m        product_id = self.validated_data['product_id'][m
+[32m+[m[32m        quantity = self.validated_data['quantity'][m
+[32m+[m[32m        cart_id = self.context['cart_id'][m
+[32m+[m[32m        try:[m
+[32m+[m[32m            cart_item = CartItem.objects.get(cart_id=cart_id, product_id=product_id)[m
+[32m+[m[32m            cart_item.quantity += quantity[m
+[32m+[m[32m            cart_item.save()[m
+[32m+[m[32m            self.instance = cart_item[m
+[32m+[m[32m        except CartItem.DoesNotExist:[m
+[32m+[m[32m           self.instance = CartItem.objects.create(cart_id=cart_id, product_id=product_id, quantity=quantity)[m
+[32m+[m[32m        return self.instance[m
+[32m+[m[32m    class Meta:[m
+[32m+[m[32m        model = CartItem[m
+[32m+[m[32m        fields = ['id', 'product_id', 'quantity'][m
+[32m+[m[41m    [m
+[32m+[m
+[32m+[m[32mclass UpdateCartItemSerializer(serializers.ModelSerializer):[m
+[32m+[m[32m    class Meta:[m
+[32m+[m[32m        model = CartItem[m
+[32m+[m[32m        fields = ['quantity'][m
+[32m+[m
+[32m+[m
+[1mdiff --git a/store/views.py b/store/views.py[m
+[1mindex 957cda8..f916cc6 100644[m
+[1m--- a/store/views.py[m
+[1m+++ b/store/views.py[m
+[36m@@ -8,7 +8,7 @@[m [mfrom store.filters import ProductFilter[m
+ from rest_framework.mixins import CreateModelMixin,RetrieveModelMixin,DestroyModelMixin[m
+ from store.pagination import DefaultPagination[m
+ from .models import Cart, CartItem, OrderItem, Product, Collection, Review[m
+[31m-from .serializers import ProductSerializer,CollectionSerializer, ReviewSerializer, CartSerializer, CartItemSerializer[m
+[32m+[m[32mfrom .serializers import AddCartItemSerializer, ProductSerializer,CollectionSerializer, ReviewSerializer, CartSerializer, CartItemSerializer, UpdateCartItemSerializer[m
+ from rest_framework import status[m
+ from rest_framework.viewsets import ModelViewSet,GenericViewSet[m
+ [m
+[36m@@ -57,8 +57,17 @@[m [mclass CartViewSet(RetrieveModelMixin, DestroyModelMixin, CreateModelMixin,Generi[m
+     serializer_class = CartSerializer[m
+ [m
+ class CartItemViewSet(ModelViewSet):[m
+[32m+[m[32m    http_method_names = ['get', 'post', 'patch', 'delete'][m
+[32m+[m[41m    [m
+[32m+[m[32m    def get_serializer_context(self):[m
+[32m+[m[32m        return {'cart_id': self.kwargs["cart_pk"]}[m
+[32m+[m[32m    def get_serializer_class(self):[m
+[32m+[m[32m        if self.request.method == "POST":[m
+[32m+[m[32m            return AddCartItemSerializer[m
+[32m+[m[32m        elif self.request.method == "PATCH":[m
+[32m+[m[32m            return UpdateCartItemSerializer[m
+[32m+[m[32m        return CartItemSerializer[m
+ [m
+[31m-    serializer_class = CartItemSerializer[m
+ [m
+     def get_queryset(self):[m
+         return CartItem.objects\[m
