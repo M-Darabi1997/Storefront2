@@ -5,10 +5,10 @@ from django_filters.rest_framework import DjangoFilterBackend
 from rest_framework.response import Response
 from rest_framework.filters import SearchFilter, OrderingFilter
 from store.filters import ProductFilter
-from rest_framework.mixins import CreateModelMixin,RetrieveModelMixin,DestroyModelMixin
+from rest_framework.mixins import CreateModelMixin,RetrieveModelMixin,DestroyModelMixin, UpdateModelMixin
 from store.pagination import DefaultPagination
-from .models import Cart, CartItem, OrderItem, Product, Collection, Review
-from .serializers import AddCartItemSerializer, ProductSerializer,CollectionSerializer, ReviewSerializer, CartSerializer, CartItemSerializer, UpdateCartItemSerializer
+from .models import Cart, CartItem, Customer, OrderItem, Product, Collection, Review
+from .serializers import AddCartItemSerializer, CustomerSerializer, ProductSerializer,CollectionSerializer, ReviewSerializer, CartSerializer, CartItemSerializer, UpdateCartItemSerializer
 from rest_framework import status
 from rest_framework.viewsets import ModelViewSet,GenericViewSet
 
@@ -73,3 +73,7 @@ class CartItemViewSet(ModelViewSet):
         return CartItem.objects\
             .filter(cart_id=self.kwargs['cart_pk'])\
             .select_related('product')
+    
+class CustomerViewSet(CreateModelMixin,RetrieveModelMixin,UpdateModelMixin,GenericViewSet):
+    queryset = Customer.objects.all()
+    serializer_class = CustomerSerializer
